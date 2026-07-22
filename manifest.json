@@ -3,7 +3,7 @@
   "short_name": "青储收割",
   "description": "青储收割记录工具",
   "start_url": ".",
-  "display": "standalone",
+  "standalone",
   "background_color": "#f0f2f5",
   "theme_color": "#4CAF50",
   "icons": [
