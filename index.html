@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>青储收割 · 记录器</title>
+    <!-- 静态引用 manifest -->
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:system-ui,-apple-system,sans-serif; background:#f0f2f5; padding:10px 10px 70px 10px; color:#222; }
+        .container { max-width:500px; margin:0 auto; }
+
+        .brand-header {
+            background: linear-gradient(135deg,#2E7D32,#4CAF50); color:white; border-radius:16px;
+            padding:18px 16px; margin-bottom:10px; text-align:center; box-shadow:0 4px 14px rgba(0,0,0,0.12);
+        }
+        .brand-header .main-title { font-size:28px; font-weight:700; letter-spacing:4px; margin-bottom:4px; text-shadow:0 2px 4px rgba(0,0,0,0.2); }
+        .brand-header .sub-title { font-size:14px; font-weight:400; opacity:0.95; letter-spacing:2px; border-top:1px solid rgba(255,255,255,0.35); padding-top:6px; margin-top:4px; }
+
+        .page { display:none; background:white; border-radius:12px; padding:16px; margin-bottom:10px; border:3px solid #4CAF50; min-height:calc(100vh - 180px); }
+        .page.active { display:block; }
+
+        h2 { font-size:18px; font-weight:700; margin-bottom:10px; color:#1a1a1a; border-left:3px solid #4CAF50; padding-left:8px; }
+        .section-title { font-size:14px; font-weight:600; color:#555; margin:12px 0 6px 0; padding-left:6px; border-left:2px solid #ccc; }
+        .tip { font-size:12px; color:#555; margin-bottom:8px; background:#fff8e1; padding:8px; border-radius:8px; border-left:3px solid #ff9800; font-weight:500; }
+        .form-group { margin-bottom:12px; }
+        label { display:block; font-size:14px; font-weight:600; margin-bottom:4px; color:#333; }
+        .label-hint { font-size:11px; font-weight:400; color:#888; }
+        .flex-row { display:flex; gap:6px; align-items:center; }
+        select, input[type="text"], input[type="number"], input[type="date"] {
+            padding:8px 10px; border:1px solid #ccc; border-radius:8px; font-size:15px; background:#fafafa; width:100%; color:#222;
+        }
+        input:focus, select:focus { outline:none; border-color:#4CAF50; background:white; }
+        .btn { display:inline-block; padding:8px 14px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; text-align:center; white-space:nowrap; transition:all 0.15s; color:white; user-select:none; }
+        .btn:active { transform:scale(0.97); }
+        .btn-primary { background:#4CAF50; font-size:16px; padding:12px; }
+        .btn-outline { background:white; color:#4CAF50; border:1px solid #4CAF50; }
+        .btn-small { padding:6px 12px; font-size:13px; }
+        .btn-danger { background:#f44336; }
+        .btn-photo { background:#1565c0; color:white; border:none; border-radius:8px; padding:10px 14px; font-size:14px; display:flex; align-items:center; gap:5px; cursor:pointer; }
+        .btn-manage {
+            background:#e8f5e9; border-radius:8px; padding:3px 5px; cursor:pointer; border:1px solid #c8e6c9;
+            display:inline-flex; align-items:center; gap:2px; line-height:1;
+        }
+        .btn-manage .gear-icon { font-size:20px; line-height:1; color:#0A84FF; }
+        .btn-manage .vertical-text { display:flex; flex-direction:column; align-items:center; font-size:11px; line-height:1.2; font-weight:500; color:#000; }
+        .btn-save-tons { background:#4CAF50; color:white; padding:4px 8px; font-size:11px; border-radius:5px; border:none; cursor:pointer; font-weight:600; }
+        .btn-warn { background:#ff9800; color:white; padding:4px 8px; font-size:11px; border-radius:5px; border:none; cursor:pointer; font-weight:600; }
+        .btn-warn.active { background:#d32f2f; }
+        .btn-del { background:#f44336; color:white; padding:4px 8px; font-size:11px; border-radius:5px; border:none; cursor:pointer; font-weight:600; }
+        .btn-batch-del { background:#d32f2f; color:white; padding:8px 14px; font-size:13px; border-radius:8px; border:none; cursor:pointer; font-weight:600; display:none; }
+        .photo-area { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+        .photo-preview { width:90px; height:68px; border:2px dashed #ccc; border-radius:8px; display:flex; align-items:center; justify-content:center; background:#fafafa; overflow:hidden; }
+        .photo-preview img { width:100%; height:100%; object-fit:cover; }
+        .plate-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; max-height:75px; overflow-y:auto; }
+        .plate-tag { background:#e3f2fd; color:#0d47a1; padding:5px 10px; border-radius:16px; font-size:13px; cursor:pointer; border:1px solid #90caf9; font-weight:500; }
+        .record-list { margin-top:8px; }
+        .record-item { background:#fafafa; border-radius:8px; padding:8px 10px; margin-bottom:6px; font-size:12px; border-left:4px solid #4CAF50; position:relative; }
+        .record-item.error { border-left:4px solid #d32f2f; background:#fff5f5; }
+        .plot-group-header { background:#e8f5e9; padding:6px 10px; margin:10px 0 6px 0; font-weight:700; font-size:13px; border-radius:6px; border-left:4px solid #2E7D32; }
+        .tonnage-row { display:flex; align-items:center; gap:4px; margin-top:4px; flex-wrap:wrap; }
+        .tonnage-input { width:70px; padding:4px; font-size:12px; border:1px solid #ccc; border-radius:4px; }
+        .diff-badge { background:#fff3e0; color:#e65100; padding:1px 6px; border-radius:8px; font-weight:700; font-size:11px; }
+        .empty-state { text-align:center; color:#999; padding:20px; }
+        .summary-controls { display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
+        .summary-controls select, .summary-controls input { flex:1; min-width:90px; font-size:13px; padding:8px; }
+        .summary-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:6px; }
+        .summary-table th { background:#e8f5e9; color:#1a1a1a; font-weight:700; padding:8px 6px; border:1px solid #c8e6c9; text-align:center; }
+        .summary-table td { padding:6px; border:1px solid #e0e0e0; text-align:center; }
+        .summary-table tr:nth-child(even) td { background:#f9f9f9; }
+        .summary-table .total-row td { font-weight:700; background:#f1f8e9; border-top:2px solid #4CAF50; }
+        .plate-panel { margin-top:6px; background:#f5f5f5; border-radius:10px; padding:10px; display:none; border:1px solid #ddd; }
+        .plate-panel.open { display:block; }
+        .plate-preview { background:white; border:2px solid #4CAF50; border-radius:6px; padding:8px; font-size:18px; font-weight:700; text-align:center; letter-spacing:2px; margin-bottom:8px; }
+        .step-title { font-size:14px; font-weight:600; margin-bottom:3px; color:#333; }
+        .grid { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px; }
+        .grid button { width:34px; height:34px; font-size:14px; border:1px solid #bbb; background:white; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:500; }
+        .serial-input-area { display:flex; gap:4px; align-items:center; }
+        .serial-input-area input { flex:1; }
+        .panel-actions { display:flex; gap:5px; margin-top:10px; }
+        .plate-input-row { display:flex; gap:5px; align-items:center; }
+        .plate-input-row input { flex:1; background:#fff; font-weight:500; }
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:1000; }
+        .modal.active { display:flex; }
+        .modal-content { background:white; border-radius:14px; padding:16px; width:90%; max-width:400px; max-height:80vh; overflow-y:auto; }
+        .list-ul { list-style:none; margin:8px 0; max-height:180px; overflow-y:auto; }
+        .list-ul li { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee; }
+        .submit-buttons { margin-top:auto; padding-top:16px; width:100%; }
+        .submit-buttons .btn { width:100%; display:block; }
+        .save-hint { font-size:12px; color:#888; text-align:center; margin-top:6px; }
+        .checkbox-label { display:flex; align-items:center; gap:5px; font-size:13px; color:#333; }
+        .checkbox-label input { width:auto; margin:0; }
+
+        .bottom-nav {
+            position:fixed; bottom:0; left:0; right:0; background:white; border-top:2px solid #4CAF50;
+            display:flex; justify-content:space-around; align-items:center; padding:8px 0; z-index:500; box-shadow:0 -2px 8px rgba(0,0,0,0.05);
+        }
+        .nav-item { display:flex; flex-direction:column; align-items:center; font-size:12px; color:#666; cursor:pointer; padding:4px 12px; border-radius:8px; }
+        .nav-item.active { color:#4CAF50; font-weight:600; }
+        .nav-item .nav-icon { font-size:20px; margin-bottom:2px; }
+
+        .export-section { margin-bottom:12px; }
+        .export-count { text-align:center; font-size:15px; color:#4CAF50; font-weight:600; margin:8px 0; }
+        .export-buttons { display:flex; gap:8px; flex-wrap:wrap; }
+        .export-buttons .btn { flex:1; min-width:100px; }
+        .export-buttons .btn:disabled { background:#ccc; cursor:not-allowed; }
+
+        .search-row { display:flex; gap:5px; margin-bottom:8px; flex-wrap:wrap; }
+        .search-row input, .search-row select { flex:1; min-width:0; font-size:15px; }
+
+        .admin-details { margin-top:15px; border-top:1px dashed #ccc; padding-top:10px; }
+        .admin-details summary { font-size:14px; font-weight:600; color:#666; cursor:pointer; padding:6px 0; outline:none; }
+        .admin-details .btn { margin-top:8px; width:100%; }
+        .summary-toggle { margin-bottom:8px; display:flex; gap:6px; }
+        .summary-toggle .btn { flex:1; font-size:13px; padding:6px; }
+        .pwd-modal-content { background:white; border-radius:14px; padding:20px; width:90%; max-width:360px; text-align:center; }
+        .pwd-modal-content input { margin:12px 0; padding:10px; width:100%; border:1px solid #ccc; border-radius:8px; font-size:16px; text-align:center; }
+        .pwd-modal-content .btn-group { display:flex; gap:8px; margin-top:10px; }
+        .pwd-modal-content .btn-group .btn { flex:1; }
+
+        .date-wrapper { position:relative; flex:1; }
+        .date-wrapper input { width:100%; height:38px; padding:6px 10px; font-size:15px; border:1px solid #ccc; border-radius:8px; background:#fafafa; box-sizing:border-box; }
+        .date-placeholder { position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:15px; color:#888; pointer-events:none; background:#fafafa; padding:0 4px; transition:opacity 0.2s; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="brand-header">
+        <div class="main-title">青储收割</div>
+        <div class="sub-title">齐心协力 · 高效作业</div>
+    </div>
+
+    <!-- 录入页 -->
+    <div class="page active" id="pageAdd">
+        <h2>📝 新增记录</h2>
+        <div class="form-group">
+            <label>🌽 地块名称 <span class="label-hint">(点击 ⚙️ 设置 添加)</span></label>
+            <div class="flex-row">
+                <select id="plotSelect"></select>
+                <button class="btn-manage" onclick="openManager('plot')">
+                    <span class="gear-icon">⚙️</span><span class="vertical-text">设<br>置</span>
+                </button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>🐄 送达牧场 <span class="label-hint">(点击 ⚙️ 设置 添加)</span></label>
+            <div class="flex-row">
+                <select id="farmSelect"></select>
+                <button class="btn-manage" onclick="openManager('farm')">
+                    <span class="gear-icon">⚙️</span><span class="vertical-text">设<br>置</span>
+                </button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>📸 拍车牌照片</label>
+            <div class="photo-area">
+                <div class="photo-preview" id="photoPreview"><span style="color:#999;font-size:12px;">预览</span></div>
+                <button class="btn-photo" onclick="document.getElementById('photoInput').click()">📷 拍照/选图</button>
+                <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>🚛 车牌号 <span class="label-hint">📌 下方常用车牌，点击后直接使用</span></label>
+            <div class="plate-input-row">
+                <input type="text" id="plateInput" placeholder="点击右侧【选号】录入" readonly="readonly">
+                <button class="btn btn-outline btn-small" onclick="togglePlatePanel()">选号</button>
+            </div>
+            <div class="plate-panel" id="platePanel">
+                <div class="plate-preview" id="platePreview">请选择省份</div>
+                <div id="stepProvince"><div class="step-title">① 选择省份简称</div><div class="grid" id="provinceGrid"></div></div>
+                <div id="stepLetter" style="display:none;"><div class="step-title">② 选择发牌机关代号</div><div class="grid" id="letterGrid"></div></div>
+                <div id="stepSerial" style="display:none;"><div class="step-title">③ 号码（最多6位）</div>
+                    <div class="serial-input-area"><input type="text" id="serialInput" placeholder="点下方键或手打" maxlength="6" autocomplete="off"></div>
+                    <div class="grid" id="digitGrid" style="margin-top:4px;"></div>
+                </div>
+                <div class="panel-actions">
+                    <button class="btn btn-primary btn-small" onclick="confirmPlate()">✅ 填入车牌</button>
+                    <button class="btn btn-outline btn-small" onclick="deleteLastChar()">⌫ 删除</button>
+                    <button class="btn btn-outline btn-small" onclick="closePlatePanel()">取消</button>
+                </div>
+            </div>
+            <div class="plate-tags" id="plateTags"></div>
+        </div>
+        <div class="submit-buttons">
+            <button class="btn btn-primary" id="smartSaveBtn" onclick="smartSave()">保存</button>
+            <div class="save-hint">地块/牧场不变时，表单仅清空车牌</div>
+        </div>
+    </div>
+
+    <!-- 汇总页 -->
+    <div class="page" id="pageSummary">
+        <h2>📊 汇总</h2>
+        <div class="section-title">筛选条件</div>
+        <div class="summary-controls">
+            <select id="summaryPlotFilter" onchange="renderSummary()"><option value="">全部地块</option></select>
+            <select id="summaryFarmFilter" onchange="renderSummary()"><option value="">全部牧场</option></select>
+            <div style="position:relative; flex:1; min-width:90px;">
+                <input type="date" id="summaryDate" onchange="renderSummary()" style="width:100%; padding:8px;">
+                <span style="position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:13px; color:#888; pointer-events:none;">按时间</span>
+            </div>
+        </div>
+        <div class="section-title">汇总方式</div>
+        <div class="summary-toggle">
+            <button class="btn btn-outline btn-small active" id="btnSummaryGroup" onclick="switchSummaryMode('group')">按地块/牧场</button>
+            <button class="btn btn-outline btn-small" id="btnSummaryPlate" onclick="switchSummaryMode('plate')">按车牌汇总</button>
+        </div>
+        <div class="section-title">汇总结果</div>
+        <div id="plotSummary"></div>
+    </div>
+
+    <!-- 磅单录入页 -->
+    <div class="page" id="pageList">
+        <h2>📋 磅单录入</h2>
+        <div class="search-row" style="flex-direction: column;">
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="searchPlate" placeholder="车牌号" oninput="renderFilteredRecords()" style="flex:1; height:38px; padding:6px 10px; font-size:15px; border:1px solid #ccc; border-radius:8px; background:#fafafa; box-sizing:border-box;">
+                <select id="searchPlot" onchange="renderFilteredRecords()" style="flex:1; height:38px; padding:6px 10px; font-size:15px; border:1px solid #ccc; border-radius:8px; background:#fafafa; box-sizing:border-box;">
+                    <option value="">全部地块</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:5px;">
+                <select id="searchFarm" onchange="renderFilteredRecords()" style="flex:1; height:38px; padding:6px 10px; font-size:15px; border:1px solid #ccc; border-radius:8px; background:#fafafa; box-sizing:border-box;">
+                    <option value="">全部牧场</option>
+                </select>
+                <div class="date-wrapper">
+                    <input type="date" id="searchDate" onchange="renderFilteredRecords()">
+                    <span class="date-placeholder">选择时间</span>
+                </div>
+            </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label class="checkbox-label"><input type="checkbox" id="showErrors" onchange="toggleErrorMode()">显示错误</label>
+            <button class="btn-batch-del" id="btnBatchDel" onclick="batchDeleteErrors()">🗑 删除全部错误</button>
+        </div>
+        <div class="tip">💡 填完吨数后点击【保存】。错误记录不参与汇总。</div>
+        <div id="recordList" class="record-list"><div class="empty-state">暂无记录</div></div>
+    </div>
+
+    <!-- 导出页 -->
+    <div class="page" id="pageExport">
+        <h2>📥 导出数据</h2>
+        <div class="export-section">
+            <label>地块（可选）</label>
+            <select id="exportPlotFilter" onchange="updateExportCount()"><option value="">全部地块</option></select>
+        </div>
+        <div class="export-section">
+            <label>日期范围（可选）</label>
+            <div style="display:flex; gap:4px; align-items:center;">
+                <input type="date" id="exportDateStart" onchange="updateExportCount()" style="flex:1;">
+                <span>至</span>
+                <input type="date" id="exportDateEnd" onchange="updateExportCount()" style="flex:1;">
+            </div>
+        </div>
+        <div class="export-count" id="exportCount">共 0 条正常记录</div>
+        <div class="export-buttons">
+            <button class="btn btn-primary" id="btnExportFiltered" onclick="doExport('filtered')">按条件导出</button>
+            <button class="btn btn-outline" id="btnExportAll" onclick="doExport('all')">导出全部正常记录</button>
+        </div>
+        <details class="admin-details">
+            <summary>⚙️ 数据管理</summary>
+            <button class="btn btn-outline btn-small" onclick="backupData()">💾 备份数据（JSON）</button>
+            <button class="btn btn-outline btn-small" onclick="document.getElementById('restoreFile').click()">📥 从备份恢复</button>
+            <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="restoreData(this)">
+            <div style="display:flex; gap:6px; margin-top:8px; align-items:center;">
+                <input type="date" id="cleanDate" style="flex:1;">
+                <button class="btn btn-danger btn-small" onclick="cleanOldPhotos()">🗑 清理此日期前照片</button>
+            </div>
+            <button class="btn btn-danger btn-small" onclick="openClearPwdModal()">⚠️ 清空全部数据</button>
+        </details>
+    </div>
+</div>
+
+<!-- 底部导航栏 -->
+<div class="bottom-nav">
+    <div class="nav-item active" data-page="pageAdd"><span class="nav-icon">➕</span> 录入</div>
+    <div class="nav-item" data-page="pageSummary"><span class="nav-icon">📊</span> 汇总</div>
+    <div class="nav-item" data-page="pageList"><span class="nav-icon">📋</span> 磅单录入</div>
+    <div class="nav-item" data-page="pageExport"><span class="nav-icon">📥</span> 导出</div>
+</div>
+
+<!-- 管理弹窗 -->
+<div id="managerModal" class="modal">
+    <div class="modal-content">
+        <h3 id="managerTitle">管理</h3>
+        <input type="text" id="newItemName" placeholder="输入名称">
+        <button class="btn btn-primary btn-small" onclick="addItem()">➕ 添加</button>
+        <ul class="list-ul" id="itemListUl"></ul>
+        <button class="btn btn-outline btn-small" onclick="closeManager()">关闭</button>
+    </div>
+</div>
+
+<!-- 清空密码弹窗 -->
+<div id="clearPwdModal" class="modal">
+    <div class="pwd-modal-content">
+        <h3>⚠️ 清空全部数据</h3>
+        <p style="font-size:14px; color:#666;">此操作不可恢复，请输入密码</p>
+        <input type="password" id="clearPwdInput" placeholder="请输入密码" autocomplete="off">
+        <div class="btn-group">
+            <button class="btn btn-danger" onclick="confirmClearAll()">确认清空</button>
+            <button class="btn btn-outline" onclick="closeClearPwdModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+    const DB_NAME = 'GrainDB';
+    const DB_VERSION = 1;
+    let db;
+    let lastSavedPlot = '';
+    let lastSavedFarm = '';
+    let summaryMode = 'group';
+
+    // 标签页切换
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const page = this.dataset.page;
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(page).classList.add('active');
+            if (page === 'pageSummary') renderSummary();
+            if (page === 'pageList') renderFilteredRecords();
+            if (page === 'pageExport') { refreshExportFilters(); updateExportCount(); }
+        });
+    });
+
+    function switchSummaryMode(mode) {
+        summaryMode = mode;
+        document.getElementById('btnSummaryGroup').classList.toggle('active', mode === 'group');
+        document.getElementById('btnSummaryPlate').classList.toggle('active', mode === 'plate');
+        renderSummary();
+    }
+
+    function openClearPwdModal() {
+        document.getElementById('clearPwdModal').classList.add('active');
+        document.getElementById('clearPwdInput').value = '';
+        setTimeout(() => document.getElementById('clearPwdInput').focus(), 100);
+    }
+    function closeClearPwdModal() { document.getElementById('clearPwdModal').classList.remove('active'); }
+
+    // 数据库操作
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('records')) {
+                    const store = db.createObjectStore('records', { keyPath: 'id' });
+                    store.createIndex('seq', 'seq', { unique: false });
+                }
+            };
+            request.onsuccess = (event) => { db = event.target.result; resolve(db); };
+            request.onerror = (event) => reject(event.target.error);
+        });
+    }
+
+    async function loadRecords() {
+        if (!db) await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('records', 'readonly');
+            const store = tx.objectStore('records');
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    async function saveRecord(record) {
+        if (!db) await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('records', 'readwrite');
+            const store = tx.objectStore('records');
+            const request = store.put(record);
+            request.onsuccess = () => resolve();
+            request.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    async function updateRecord(id, updatedFields) {
+        if (!db) await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('records', 'readwrite');
+            const store = tx.objectStore('records');
+            const getRequest = store.get(id);
+            getRequest.onsuccess = () => {
+                const record = getRequest.result;
+                if (!record) return reject('记录不存在');
+                Object.assign(record, updatedFields);
+                store.put(record).onsuccess = () => resolve(record);
+            };
+            getRequest.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    async function deleteRecordById(id) {
+        if (!db) await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('records', 'readwrite');
+            const store = tx.objectStore('records');
+            const request = store.delete(id);
+            request.onsuccess = () => resolve();
+            request.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    // 地块牧场管理
+    const PLOTS_KEY = 'custom_plots_v2';
+    const FARMS_KEY = 'custom_farms';
+    function getList(key) { return JSON.parse(localStorage.getItem(key) || '[]'); }
+    function saveList(key, list) { localStorage.setItem(key, JSON.stringify(list)); }
+    function refreshSelects() {
+        renderSelect('plotSelect', getList(PLOTS_KEY), '-- 请先添加地块 --');
+        renderSelect('farmSelect', getList(FARMS_KEY), '-- 请先添加牧场 --');
+        renderSummaryFilters();
+        refreshExportFilters();
+        renderSelect('searchPlot', getList(PLOTS_KEY), '全部地块');
+        renderSelect('searchFarm', getList(FARMS_KEY), '全部牧场');
+    }
+    function renderSelect(id, items, emptyText) {
+        const s = document.getElementById(id);
+        s.innerHTML = (emptyText ? `<option value="">${emptyText}</option>` : '') + items.map(i => `<option value="${i}">${i}</option>`).join('');
+    }
+
+    let currentManagerType = '';
+    function openManager(type) {
+        currentManagerType = type;
+        document.getElementById('managerTitle').textContent = type === 'plot' ? '管理地块' : '管理牧场';
+        document.getElementById('managerModal').classList.add('active');
+        renderItemList();
+        document.getElementById('newItemName').value = '';
+    }
+    function closeManager() { document.getElementById('managerModal').classList.remove('active'); }
+    function renderItemList() {
+        const items = getList(currentManagerType === 'plot' ? PLOTS_KEY : FARMS_KEY);
+        const ul = document.getElementById('itemListUl');
+        ul.innerHTML = items.length === 0 ? '<li style="color:#999;">暂无</li>' : items.map(i => `<li><span>${i}</span> <button class="btn btn-danger btn-small" onclick="deleteItem('${i}')">删除</button></li>`).join('');
+    }
+    function addItem() {
+        const name = document.getElementById('newItemName').value.trim();
+        if (!name) return alert('请输入名称');
+        const key = currentManagerType === 'plot' ? PLOTS_KEY : FARMS_KEY;
+        const items = getList(key);
+        if (items.includes(name)) return alert('已存在');
+        items.push(name);
+        saveList(key, items);
+        refreshSelects();
+        renderItemList();
+        document.getElementById('newItemName').value = '';
+    }
+    function deleteItem(name) {
+        if (!confirm(`确定删除"${name}"？`)) return;
+        const key = currentManagerType === 'plot' ? PLOTS_KEY : FARMS_KEY;
+        let items = getList(key);
+        items = items.filter(i => i !== name);
+        saveList(key, items);
+        refreshSelects();
+        renderItemList();
+    }
+
+    function getFormattedTime() {
+        const now = new Date();
+        return `${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    }
+
+    let currentPhotoBlob = null;
+    function compressImage(file, maxWidth = 800, quality = 0.7) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    if (img.width <= maxWidth) { resolve(file); return; }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = maxWidth;
+                    canvas.height = img.height * (maxWidth / img.width);
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob((blob) => { resolve(blob || file); }, 'image/jpeg', quality);
+                };
+                img.onerror = () => reject(new Error('图片加载失败'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('文件读取失败'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    document.getElementById('photoInput').addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            document.getElementById('photoPreview').innerHTML = '<span style="color:#999;font-size:11px;">压缩中...</span>';
+            const blob = await compressImage(file, 800, 0.7);
+            currentPhotoBlob = blob;
+            document.getElementById('photoPreview').innerHTML = `<img src="${URL.createObjectURL(blob)}" alt="车牌">`;
+        } catch (err) { alert('照片处理失败'); }
+    });
+
+    // 车牌选号
+    const PROVINCES = ['京','津','沪','渝','冀','豫','云','辽','黑','湘','皖','鲁','新','苏','浙','赣','鄂','桂','甘','晋','蒙','陕','吉','闽','贵','粤','川','青','藏','琼','宁'];
+    const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'.split('');
+    const DIGITS = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'.split('');
+    let plateProvince='', plateLetter='', plateSerial='';
+    function buildGrids() {
+        document.getElementById('provinceGrid').innerHTML = PROVINCES.map(p => `<button onclick="selectProvince('${p}')">${p}</button>`).join('');
+        document.getElementById('letterGrid').innerHTML = LETTERS.map(l => `<button onclick="selectLetter('${l}')">${l}</button>`).join('');
+        document.getElementById('digitGrid').innerHTML = DIGITS.map(d => `<button onclick="appendSerial('${d}')">${d}</button>`).join('');
+    }
+    function selectProvince(p) { plateProvince = p; updatePlatePreview(); document.getElementById('stepProvince').style.display='none'; document.getElementById('stepLetter').style.display='block'; }
+    function selectLetter(l) { plateLetter = l; updatePlatePreview(); document.getElementById('stepLetter').style.display='none'; document.getElementById('stepSerial').style.display='block'; document.getElementById('serialInput').focus(); }
+    function appendSerial(char) { if(plateSerial.length>=6) return; plateSerial += char; document.getElementById('serialInput').value = plateSerial; updatePlatePreview(); }
+    document.getElementById('serialInput').addEventListener('input', function() {
+        this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0,6);
+        plateSerial = this.value; updatePlatePreview();
+    });
+    function updatePlatePreview() {
+        let full = plateProvince || ''; if(plateLetter) full += plateLetter + '·'; if(plateSerial) full += plateSerial;
+        document.getElementById('platePreview').textContent = full || '请选择省份';
+    }
+    function togglePlatePanel() {
+        const panel = document.getElementById('platePanel');
+        panel.classList.toggle('open');
+        if (panel.classList.contains('open')) {
+            setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+        }
+    }
+    function closePlatePanel() { document.getElementById('platePanel').classList.remove('open'); }
+    function deleteLastChar() {
+        if(plateSerial.length > 0) { plateSerial = plateSerial.slice(0,-1); document.getElementById('serialInput').value = plateSerial; }
+        else if(plateLetter) { plateLetter = ''; document.getElementById('stepSerial').style.display='none'; document.getElementById('stepLetter').style.display='block'; }
+        else if(plateProvince) { plateProvince = ''; document.getElementById('stepLetter').style.display='none'; document.getElementById('stepProvince').style.display='block'; }
+        updatePlatePreview();
+    }
+    function confirmPlate() {
+        let full = (plateProvince + (plateLetter ? plateLetter + '·' : '') + plateSerial).trim();
+        if(!plateProvince||!plateLetter) { alert('请选择省份和字母'); return; }
+        document.getElementById('plateInput').value = full; closePlatePanel();
+    }
+
+    // 保存记录
+    async function smartSave() {
+        const plot = document.getElementById('plotSelect').value;
+        const farm = document.getElementById('farmSelect').value;
+        const plate = document.getElementById('plateInput').value.trim();
+        if(!plot) return alert('请选择地块');
+        if(!farm) return alert('请选择送达牧场');
+        if(!plate) return alert('请录入车牌号');
+        if(!currentPhotoBlob && !confirm('还没有拍照，确定提交吗？')) return;
+
+        const id = Date.now();
+        const record = {
+            id, seq:0, time:getFormattedTime(), timestamp:Date.now(),
+            plot, farm, plate, photoBlob: currentPhotoBlob || null,
+            tonsMine:null, tonsOwner:null, diff:null, status:'normal'
+        };
+        await saveRecord(record);
+
+        const btn = document.getElementById('smartSaveBtn');
+        const originalText = btn.textContent;
+        btn.textContent = '✅ 已保存'; btn.style.background = '#388E3C';
+        setTimeout(() => { btn.textContent = originalText; btn.style.background = '#4CAF50'; }, 800);
+
+        document.getElementById('plateInput').value = '';
+        document.getElementById('photoPreview').innerHTML = '<span style="color:#999;font-size:12px;">预览</span>';
+        document.getElementById('photoInput').value = ''; currentPhotoBlob = null; closePlatePanel();
+
+        const hasChanged = (plot !== lastSavedPlot || farm !== lastSavedFarm);
+        if(hasChanged) { document.getElementById('plotSelect').selectedIndex=0; document.getElementById('farmSelect').selectedIndex=0; lastSavedPlot=''; lastSavedFarm=''; }
+        else { lastSavedPlot = plot; lastSavedFarm = farm; }
+        await renderAll();
+    }
+
+    // 磅单操作
+    async function toggleError(id) {
+        const records = await loadRecords(); const r = records.find(r=>r.id===id); if(!r) return;
+        const newStatus = r.status === 'error' ? 'normal' : 'error';
+        if(!confirm(newStatus==='error'?'确定标记为错误记录吗？':'确定恢复为正常记录吗？')) return;
+        await updateRecord(id, { status: newStatus }); await renderAll();
+    }
+
+    async function deleteSingleRecord(id) { if(!confirm('确定永久删除这条记录吗？')) return; await deleteRecordById(id); await renderAll(); }
+
+    async function batchDeleteErrors() {
+        const records = await loadRecords(); const errorRecords = records.filter(r=>r.status==='error');
+        if(errorRecords.length===0) { alert('没有可删除的错误记录'); return; }
+        if(!confirm(`确定永久删除全部 ${errorRecords.length} 条错误记录吗？`)) return;
+        for(const r of errorRecords) { await deleteRecordById(r.id); }
+        await renderAll();
+    }
+
+    async function saveTons(id) {
+        const mineInput = document.getElementById(`tonsMine_${id}`); const ownerInput = document.getElementById(`tonsOwner_${id}`);
+        const tonsMine = mineInput.value==='' ? null : parseFloat(mineInput.value);
+        const tonsOwner = ownerInput.value==='' ? null : parseFloat(ownerInput.value);
+        const diff = (tonsMine!=null && tonsOwner!=null) ? (tonsMine - tonsOwner).toFixed(3) : null;
+        await updateRecord(id, { tonsMine, tonsOwner, diff }); await renderAll();
+    }
+
+    async function getFilteredRecords() {
+        const records = await loadRecords();
+        const plateF = document.getElementById('searchPlate')?.value.trim().toUpperCase() || '';
+        const plotF = document.getElementById('searchPlot')?.value || '';
+        const farmF = document.getElementById('searchFarm')?.value || '';
+        const dateVal = document.getElementById('searchDate')?.value;
+        const showErrors = document.getElementById('showErrors')?.checked || false;
+
+        return records.filter(r => {
+            if(!showErrors && r.status==='error') return false;
+            if(plateF && !r.plate.toUpperCase().includes(plateF)) return false;
+            if(plotF && r.plot !== plotF) return false;
+            if(farmF && r.farm !== farmF) return false;
+            if(dateVal) {
+                const ts = r.timestamp; if(!ts) return false;
+                const d = new Date(dateVal);
+                const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+                const end = start + 86400000;
+                if(ts < start || ts >= end) return false;
+            }
+            return true;
+        });
+    }
+
+    function toggleErrorMode() {
+        document.getElementById('btnBatchDel').style.display = document.getElementById('showErrors').checked ? 'inline-block' : 'none';
+        renderFilteredRecords();
+    }
+
+    function sortAndNumber(records) {
+        const sorted = [...records].sort((a,b) => a.plot.localeCompare(b.plot,'zh') || (a.timestamp||0) - (b.timestamp||0));
+        let map = {}; sorted.forEach(r => { map[r.plot] = (map[r.plot]||0)+1; r._plotSeq = map[r.plot]; });
+        return sorted;
+    }
+
+    async function renderFilteredRecords() {
+        let records = await getFilteredRecords(); records = sortAndNumber(records);
+        const listDiv = document.getElementById('recordList');
+        if(records.length===0) { listDiv.innerHTML = '<div class="empty-state">暂无符合条件的记录</div>'; return; }
+        let currentPlot = '', html = '';
+        records.forEach(r => {
+            if(r.plot !== currentPlot) { currentPlot = r.plot; html += `<div class="plot-group-header">🌽 ${r.plot}</div>`; }
+            html += `
+                <div class="record-item ${r.status==='error'?'error':''}">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>第${r._plotSeq}车 | ${r.time} | 🚛 ${r.plate}</span>
+                        <span>🐄 ${r.farm}</span>
+                    </div>
+                    <div class="tonnage-row">
+                        <span>牧场吨：<input type="number" step="0.001" class="tonnage-input" id="tonsMine_${r.id}" value="${r.tonsMine!==null?r.tonsMine.toFixed(3):''}" placeholder="0.000" onfocus="this.scrollIntoView({behavior:'smooth',block:'center'})"></span>
+                        <span>地主吨：<input type="number" step="0.001" class="tonnage-input" id="tonsOwner_${r.id}" value="${r.tonsOwner!==null?r.tonsOwner.toFixed(3):''}" placeholder="0.000" onfocus="this.scrollIntoView({behavior:'smooth',block:'center'})"></span>
+                        <button class="btn-save-tons" onclick="saveTons(${r.id})">保存</button>
+                        <span class="diff-badge">差值：${r.diff!==null?parseFloat(r.diff).toFixed(3):'-'}</span>
+                        <button class="btn-warn ${r.status==='error'?'active':''}" onclick="toggleError(${r.id})" style="margin-left:auto;">${r.status==='error'?'恢复':'错误'}</button>
+                        ${r.status==='error'?`<button class="btn-del" onclick="deleteSingleRecord(${r.id})">删除</button>`:''}
+                    </div>
+                    ${r.photoBlob ? `<div style="margin-top:4px;"><img src="${URL.createObjectURL(r.photoBlob)}" style="height:40px; border-radius:4px;"></div>` : ''}
+                </div>
+            `;
+        });
+        listDiv.innerHTML = html;
+        updatePlateSuggestions();
+    }
+
+    function getNormalRecordsForSummary() {
+        return loadRecords().then(all => {
+            const normal = all.filter(r => r.status !== 'error');
+            const plotFilter = document.getElementById('summaryPlotFilter').value;
+            const farmFilter = document.getElementById('summaryFarmFilter').value;
+            const dateVal = document.getElementById('summaryDate').value;
+            return normal.filter(r => {
+                if (plotFilter && r.plot !== plotFilter) return false;
+                if (farmFilter && r.farm !== farmFilter) return false;
+                if (dateVal) {
+                    const ts = r.timestamp; if(!ts) return false;
+                    const d = new Date(dateVal);
+                    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+                    const end = start + 86400000;
+                    if(ts < start || ts >= end) return false;
+                }
+                return true;
+            });
+        });
+    }
+
+    async function renderSummary() { summaryMode === 'group' ? await renderPlotSummary() : await renderPlateSummary(); }
+
+    async function renderPlotSummary() {
+        const normalRecords = await getNormalRecordsForSummary();
+        const summaryDiv = document.getElementById('plotSummary');
+        let rows = [], map = {};
+        normalRecords.forEach(r => {
+            const key = `${r.plot}|||${r.farm}`;
+            if (!map[key]) map[key] = { plot: r.plot, farm: r.farm, cars:0, tonsMine:0, tonsOwner:0, diff:0 };
+            map[key].cars++; map[key].tonsMine+=parseFloat(r.tonsMine)||0; map[key].tonsOwner+=parseFloat(r.tonsOwner)||0; map[key].diff+=parseFloat(r.diff)||0;
+        });
+        rows = Object.values(map).sort((a,b) => a.plot.localeCompare(b.plot,'zh')||a.farm.localeCompare(b.farm,'zh'));
+        if(rows.length===0) { summaryDiv.innerHTML='<div class="empty-state">暂无数据</div>'; return; }
+        const totalCars = rows.reduce((s,r)=>s+r.cars,0), totalTonsMine = rows.reduce((s,r)=>s+r.tonsMine,0), totalTonsOwner = rows.reduce((s,r)=>s+r.tonsOwner,0), totalDiff = rows.reduce((s,r)=>s+r.diff,0);
+        let html = '<table class="summary-table"><thead><tr><th>地块</th><th>牧场</th><th>车数</th><th>牧场吨</th><th>地主吨</th><th>差额</th></tr></thead><tbody>';
+        rows.forEach(r=>{ html += `<tr><td>${r.plot}</td><td>🐄 ${r.farm}</td><td>${r.cars}</td><td>${r.tonsMine.toFixed(3)}</td><td>${r.tonsOwner.toFixed(3)}</td><td>${r.diff.toFixed(3)}</td></tr>`; });
+        if(rows.length>1) html += `<tr class="total-row"><td colspan="2">合计</td><td>${totalCars}</td><td>${totalTonsMine.toFixed(3)}</td><td>${totalTonsOwner.toFixed(3)}</td><td>${totalDiff.toFixed(3)}</td></tr>`;
+        html += '</tbody></table>'; summaryDiv.innerHTML = html;
+    }
+
+    async function renderPlateSummary() {
+        const normalRecords = await getNormalRecordsForSummary();
+        const summaryDiv = document.getElementById('plotSummary');
+        const plateMap = {};
+        normalRecords.forEach(r => {
+            if (!plateMap[r.plate]) plateMap[r.plate] = { plate: r.plate, cars:0, tonsMine:0, tonsOwner:0, diff:0 };
+            plateMap[r.plate].cars++; plateMap[r.plate].tonsMine+=parseFloat(r.tonsMine)||0; plateMap[r.plate].tonsOwner+=parseFloat(r.tonsOwner)||0; plateMap[r.plate].diff+=parseFloat(r.diff)||0;
+        });
+        let rows = Object.values(plateMap).sort((a,b) => a.plate.localeCompare(b.plate));
+        if(rows.length===0) { summaryDiv.innerHTML='<div class="empty-state">暂无数据</div>'; return; }
+        const totalCars = rows.reduce((s,r)=>s+r.cars,0), totalTonsMine = rows.reduce((s,r)=>s+r.tonsMine,0), totalTonsOwner = rows.reduce((s,r)=>s+r.tonsOwner,0), totalDiff = rows.reduce((s,r)=>s+r.diff,0);
+        let html = '<table class="summary-table"><thead><tr><th>车牌号</th><th>车数</th><th>牧场吨</th><th>地主吨</th><th>差额</th></tr></thead><tbody>';
+        rows.forEach(r=>{ html += `<tr><td>🚛 ${r.plate}</td><td>${r.cars}</td><td>${r.tonsMine.toFixed(3)}</td><td>${r.tonsOwner.toFixed(3)}</td><td>${r.diff.toFixed(3)}</td></tr>`; });
+        if(rows.length>1) html += `<tr class="total-row"><td>合计</td><td>${totalCars}</td><td>${totalTonsMine.toFixed(3)}</td><td>${totalTonsOwner.toFixed(3)}</td><td>${totalDiff.toFixed(3)}</td></tr>`;
+        html += '</tbody></table>'; summaryDiv.innerHTML = html;
+    }
+
+    function renderSummaryFilters() {
+        const plots = getList(PLOTS_KEY); const farms = getList(FARMS_KEY);
+        document.getElementById('summaryPlotFilter').innerHTML = '<option value="">全部地块</option>' + plots.map(p=>`<option value="${p}">${p}</option>`).join('');
+        document.getElementById('summaryFarmFilter').innerHTML = '<option value="">全部牧场</option>' + farms.map(f=>`<option value="${f}">${f}</option>`).join('');
+    }
+
+    function refreshExportFilters() {
+        const plots = getList(PLOTS_KEY);
+        document.getElementById('exportPlotFilter').innerHTML = '<option value="">全部地块</option>' + plots.map(p => `<option value="${p}">${p}</option>`).join('');
+    }
+
+    async function updatePlateSuggestions() {
+        const records = await loadRecords(); const plates = [...new Set(records.map(r=>r.plate).filter(Boolean))].sort();
+        const container = document.getElementById('plateTags');
+        container.innerHTML = plates.length===0 ? '<span style="font-size:11px;color:#999;">暂无常用车牌</span>' : plates.map(p=>`<span class="plate-tag" onclick="selectExistingPlate('${p}')">${p}</span>`).join('');
+    }
+    function selectExistingPlate(plate) { if(confirm(`确定选择车牌 ${plate} 吗？`)) document.getElementById('plateInput').value = plate; }
+
+    function clearSearch() {
+        document.getElementById('searchPlate').value = '';
+        document.getElementById('searchPlot').value = '';
+        document.getElementById('searchFarm').value = '';
+        const dateInput = document.getElementById('searchDate');
+        dateInput.value = '';
+        dateInput.dispatchEvent(new Event('change'));
+        document.getElementById('showErrors').checked = false;
+        document.getElementById('btnBatchDel').style.display = 'none';
+        renderFilteredRecords();
+    }
+
+    (function() {
+        const dateInput = document.getElementById('searchDate');
+        const hint = document.querySelector('#pageList .date-placeholder');
+        if (dateInput && hint) {
+            dateInput.addEventListener('input', () => hint.style.opacity = dateInput.value ? '0' : '1');
+            dateInput.addEventListener('focus', () => hint.style.opacity = '0');
+            dateInput.addEventListener('blur', () => { if (!dateInput.value) hint.style.opacity = '1'; });
+        }
+    })();
+
+    async function updateExportCount() { const records = await getExportTargetRecords(); document.getElementById('exportCount').textContent = `共 ${records.length} 条正常记录`; }
+
+    async function getExportTargetRecords() {
+        const allRecords = await loadRecords();
+        const normalRecords = allRecords.filter(r => r.status !== 'error');
+        const plotFilter = document.getElementById('exportPlotFilter').value;
+        const dStart = document.getElementById('exportDateStart').value;
+        const dEnd = document.getElementById('exportDateEnd').value;
+        return normalRecords.filter(r => {
+            if(plotFilter && r.plot !== plotFilter) return false;
+            if(dStart || dEnd) {
+                const ts = r.timestamp; if(!ts) return true;
+                if(dStart && ts < new Date(dStart).getTime()) return false;
+                if(dEnd) { const end = new Date(dEnd); end.setHours(23,59,59,999); if(ts > end.getTime()) return false; }
+            }
+            return true;
+        });
+    }
+
+    async function doExport(mode) {
+        const btnFiltered = document.getElementById('btnExportFiltered'), btnAll = document.getElementById('btnExportAll');
+        if (btnFiltered.disabled) return;
+        btnFiltered.disabled = true; btnAll.disabled = true;
+        btnFiltered.textContent = '打包中...'; btnAll.textContent = '打包中...';
+
+        let records = mode === 'filtered' ? await getExportTargetRecords() : (await loadRecords()).filter(r => r.status !== 'error');
+        if(records.length === 0) { alert('没有可导出的记录'); resetExportButtons(); return; }
+        records = sortAndNumber(records);
+
+        try {
+            if (typeof JSZip === 'undefined') { alert('JSZip 未加载'); resetExportButtons(); return; }
+            const zip = new JSZip(); const imgFolder = zip.folder('照片');
+            let csv = '\uFEFF地块内序号,地块,时间,送达牧场,车牌号,牧场地磅(吨),地主地磅(吨),差值(吨)\n';
+            records.forEach(r => { csv += `${r._plotSeq},${r.plot},${r.time},${r.farm},${r.plate},${r.tonsMine!==null?r.tonsMine.toFixed(3):''},${r.tonsOwner!==null?r.tonsOwner.toFixed(3):''},${r.diff!==null?r.diff:''}\n`; });
+            zip.file('青储收割记录.csv', csv);
+            for(const r of records) { if(r.photoBlob) { const ext = r.photoBlob.type==='image/png'?'png':'jpg'; const safeTime = r.time.replace(/[/:]/g,'-').replace(/\s/g,''); const tonsLabel = r.tonsMine!==null?`牧场${r.tonsMine.toFixed(3)}吨`:'牧场无吨'; imgFolder.file(`${r.plot}_${safeTime}_${r.plate}_${tonsLabel}.${ext}`, r.photoBlob); } }
+            const content = await zip.generateAsync({ type: 'blob' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(content); a.download = `青储收割记录_${new Date().toLocaleDateString()}.zip`; a.click();
+        } catch(e) { alert('导出失败，请重试'); }
+        resetExportButtons();
+    }
+
+    function resetExportButtons() {
+        const btnFiltered = document.getElementById('btnExportFiltered'), btnAll = document.getElementById('btnExportAll');
+        btnFiltered.disabled = false; btnAll.disabled = false;
+        btnFiltered.textContent = '按条件导出'; btnAll.textContent = '导出全部正常记录';
+    }
+
+    async function backupData() {
+        const records = await loadRecords();
+        const backup = records.map(r => ({
+            id: r.id, seq: r.seq, time: r.time, timestamp: r.timestamp,
+            plot: r.plot, farm: r.farm, plate: r.plate, photoBase64: null,
+            tonsMine: r.tonsMine, tonsOwner: r.tonsOwner, diff: r.diff, status: r.status
+        }));
+        for(let i=0; i<backup.length; i++) { if(records[i].photoBlob) backup[i].photoBase64 = await blobToBase64(records[i].photoBlob); }
+        const json = JSON.stringify(backup);
+        const blob = new Blob([json], {type:'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `青储收割备份_${new Date().toLocaleDateString()}.json`; a.click();
+    }
+
+    function blobToBase64(blob) { return new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsDataURL(blob); }); }
+
+    async function restoreData(input) {
+        const file = input.files[0]; if(!file) return;
+        const pwd = prompt('请输入恢复密码：'); if(pwd !== 'huiyun88150') { alert('密码错误'); input.value=''; return; }
+        if(!confirm('恢复备份将清空当前所有数据，确定继续吗？')) { input.value=''; return; }
+        try {
+            const text = await file.text(); const backup = JSON.parse(text);
+            await new Promise((resolve, reject) => { const delReq = indexedDB.deleteDatabase(DB_NAME); delReq.onsuccess = () => resolve(); delReq.onerror = (e) => reject(e); });
+            db = null; await openDB();
+            for(const item of backup) {
+                const record = {
+                    id: item.id, seq: item.seq, time: item.time, timestamp: item.timestamp || Date.now(),
+                    plot: item.plot, farm: item.farm, plate: item.plate,
+                    photoBlob: item.photoBase64 ? await base64ToBlob(item.photoBase64) : null,
+                    tonsMine: item.tonsMine, tonsOwner: item.tonsOwner, diff: item.diff, status: item.status || 'normal'
+                };
+                await saveRecord(record);
+            }
+            alert('恢复成功！'); await renderAll();
+        } catch(e) { alert('恢复失败，文件格式不正确'); }
+        input.value = '';
+    }
+
+    async function base64ToBlob(base64) { const res = await fetch(base64); return await res.blob(); }
+
+    async function cleanOldPhotos() {
+        const dateStr = document.getElementById('cleanDate').value; if(!dateStr) return alert('请选择日期');
+        const cutoff = new Date(dateStr).getTime(); const records = await loadRecords(); let count = 0;
+        for(const r of records) { if(r.timestamp && r.timestamp < cutoff && r.photoBlob) { await updateRecord(r.id, { photoBlob: null }); count++; } }
+        alert(`已清理 ${count} 条记录的照片`); await renderAll();
+    }
+
+    async function confirmClearAll() {
+        const pwd = document.getElementById('clearPwdInput').value;
+        if(pwd !== 'huiyun88150') { alert('密码错误'); return; }
+        if(!confirm('最后确认：清空全部数据？此操作不可恢复。')) return;
+        closeClearPwdModal();
+        await new Promise((resolve, reject) => { const delReq = indexedDB.deleteDatabase(DB_NAME); delReq.onsuccess = () => resolve(); delReq.onerror = (e) => reject(e); });
+        db = null; await openDB();
+        alert('数据已清空'); await renderAll();
+    }
+
+    async function renderAll() { await renderFilteredRecords(); if (document.getElementById('pageSummary').classList.contains('active')) { renderSummary(); } refreshSelects(); updateExportCount(); }
+
+    openDB().then(() => { buildGrids(); refreshSelects(); renderAll(); });
+
+    // 静态 Service Worker 注册
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .catch(err => console.log('SW failed', err));
+        });
+    }
+</script>
+</body>
+</html>
