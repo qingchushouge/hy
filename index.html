@@ -75,8 +75,11 @@
         .step-title { font-size:14px; font-weight:600; margin-bottom:3px; color:#333; }
         .grid { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px; }
         .grid button { width:34px; height:34px; font-size:14px; border:1px solid #bbb; background:white; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:500; }
-        .serial-input-area { display:flex; gap:4px; align-items:center; }
-        .serial-input-area input { flex:1; }
+        .serial-display {
+            min-height:38px; padding:8px 10px; border:1px solid #ccc; border-radius:8px;
+            background:#fafafa; font-size:15px; color:#222; line-height:1.4; word-break:break-all;
+            width:100%; box-sizing:border-box;
+        }
         .panel-actions { display:flex; gap:5px; margin-top:10px; }
         .plate-input-row { display:flex; gap:5px; align-items:center; }
         .plate-input-row input { flex:1; background:#fff; font-weight:500; }
@@ -169,8 +172,9 @@
                 <div class="plate-preview" id="platePreview">请选择省份</div>
                 <div id="stepProvince"><div class="step-title">① 选择省份简称</div><div class="grid" id="provinceGrid"></div></div>
                 <div id="stepLetter" style="display:none;"><div class="step-title">② 选择发牌机关代号</div><div class="grid" id="letterGrid"></div></div>
-                <div id="stepSerial" style="display:none;"><div class="step-title">③ 号码（最多6位）</div>
-                    <div class="serial-input-area"><input type="text" id="serialInput" placeholder="点下方键选择" maxlength="6" autocomplete="off" readonly="readonly"></div>
+                <div id="stepSerial" style="display:none;">
+                    <div class="step-title">③ 号码（最多6位）</div>
+                    <div class="serial-display" id="serialDisplay"></div>
                     <div class="grid" id="digitGrid" style="margin-top:4px;"></div>
                 </div>
                 <div class="panel-actions">
@@ -496,7 +500,7 @@
         } catch (err) { alert('照片处理失败'); }
     });
 
-    // 车牌选号
+    // 车牌选号（使用div显示序列号，永不弹键盘）
     const PROVINCES = ['京','津','沪','渝','冀','豫','云','辽','黑','湘','皖','鲁','新','苏','浙','赣','鄂','桂','甘','晋','蒙','陕','吉','闽','贵','粤','川','青','藏','琼','宁'];
     const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'.split('');
     const DIGITS = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'.split('');
@@ -512,15 +516,13 @@
         updatePlatePreview();
         document.getElementById('stepLetter').style.display='none';
         document.getElementById('stepSerial').style.display='block';
-        // 不自动聚焦，键盘不会弹出
     }
-    function appendSerial(char) { if(plateSerial.length>=6) return; plateSerial += char; document.getElementById('serialInput').value = plateSerial; updatePlatePreview(); }
-    document.getElementById('serialInput').addEventListener('input', function() {
-        this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0,6);
-        plateSerial = this.value; updatePlatePreview();
-    });
-    // 阻止只读输入框弹出键盘
-    document.getElementById('serialInput').addEventListener('focus', function() { this.blur(); });
+    function appendSerial(char) {
+        if(plateSerial.length>=6) return;
+        plateSerial += char;
+        document.getElementById('serialDisplay').textContent = plateSerial;
+        updatePlatePreview();
+    }
     function updatePlatePreview() {
         let full = plateProvince || ''; if(plateLetter) full += plateLetter + '·'; if(plateSerial) full += plateSerial;
         document.getElementById('platePreview').textContent = full || '请选择省份';
@@ -534,15 +536,25 @@
     }
     function closePlatePanel() { document.getElementById('platePanel').classList.remove('open'); }
     function deleteLastChar() {
-        if(plateSerial.length > 0) { plateSerial = plateSerial.slice(0,-1); document.getElementById('serialInput').value = plateSerial; }
-        else if(plateLetter) { plateLetter = ''; document.getElementById('stepSerial').style.display='none'; document.getElementById('stepLetter').style.display='block'; }
-        else if(plateProvince) { plateProvince = ''; document.getElementById('stepLetter').style.display='none'; document.getElementById('stepProvince').style.display='block'; }
+        if(plateSerial.length > 0) {
+            plateSerial = plateSerial.slice(0,-1);
+            document.getElementById('serialDisplay').textContent = plateSerial;
+        } else if(plateLetter) {
+            plateLetter = '';
+            document.getElementById('stepSerial').style.display='none';
+            document.getElementById('stepLetter').style.display='block';
+        } else if(plateProvince) {
+            plateProvince = '';
+            document.getElementById('stepLetter').style.display='none';
+            document.getElementById('stepProvince').style.display='block';
+        }
         updatePlatePreview();
     }
     function confirmPlate() {
         let full = (plateProvince + (plateLetter ? plateLetter + '·' : '') + plateSerial).trim();
         if(!plateProvince||!plateLetter) { alert('请选择省份和字母'); return; }
-        document.getElementById('plateInput').value = full; closePlatePanel();
+        document.getElementById('plateInput').value = full;
+        closePlatePanel();
     }
 
     // 保存记录
@@ -874,7 +886,6 @@
 
     openDB().then(() => { buildGrids(); refreshSelects(); renderAll(); });
 
-    // Service Worker 注册
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js')
