@@ -170,7 +170,7 @@
                 <div id="stepProvince"><div class="step-title">① 选择省份简称</div><div class="grid" id="provinceGrid"></div></div>
                 <div id="stepLetter" style="display:none;"><div class="step-title">② 选择发牌机关代号</div><div class="grid" id="letterGrid"></div></div>
                 <div id="stepSerial" style="display:none;"><div class="step-title">③ 号码（最多6位）</div>
-                    <div class="serial-input-area"><input type="text" id="serialInput" placeholder="点下方键选择" maxlength="6" autocomplete="off" readonly onfocus="this.blur();" inputmode="none"></div>
+                    <div class="serial-input-area"><input type="text" id="serialInput" placeholder="点下方键选择" maxlength="6" autocomplete="off" readonly="readonly"></div>
                     <div class="grid" id="digitGrid" style="margin-top:4px;"></div>
                 </div>
                 <div class="panel-actions">
@@ -510,11 +510,17 @@
     function selectLetter(l) {
         plateLetter = l;
         updatePlatePreview();
-        document.getElementById('stepLetter').style.display = 'none';
-        document.getElementById('stepSerial').style.display = 'block';
-        document.activeElement.blur();
+        document.getElementById('stepLetter').style.display='none';
+        document.getElementById('stepSerial').style.display='block';
+        // 不自动聚焦，键盘不会弹出
     }
     function appendSerial(char) { if(plateSerial.length>=6) return; plateSerial += char; document.getElementById('serialInput').value = plateSerial; updatePlatePreview(); }
+    document.getElementById('serialInput').addEventListener('input', function() {
+        this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0,6);
+        plateSerial = this.value; updatePlatePreview();
+    });
+    // 阻止只读输入框弹出键盘
+    document.getElementById('serialInput').addEventListener('focus', function() { this.blur(); });
     function updatePlatePreview() {
         let full = plateProvince || ''; if(plateLetter) full += plateLetter + '·'; if(plateSerial) full += plateSerial;
         document.getElementById('platePreview').textContent = full || '请选择省份';
@@ -868,7 +874,7 @@
 
     openDB().then(() => { buildGrids(); refreshSelects(); renderAll(); });
 
-    // 静态 Service Worker 注册
+    // Service Worker 注册
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js')
