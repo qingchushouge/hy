@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>青储收割 · 记录器</title>
-    <!-- 静态引用 manifest.json -->
     <link rel="manifest" href="manifest.json">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -171,7 +170,7 @@
                 <div id="stepProvince"><div class="step-title">① 选择省份简称</div><div class="grid" id="provinceGrid"></div></div>
                 <div id="stepLetter" style="display:none;"><div class="step-title">② 选择发牌机关代号</div><div class="grid" id="letterGrid"></div></div>
                 <div id="stepSerial" style="display:none;"><div class="step-title">③ 号码（最多6位）</div>
-                    <div class="serial-input-area"><input type="text" id="serialInput" placeholder="点下方键或手打" maxlength="6" autocomplete="off"></div>
+                    <div class="serial-input-area"><input type="text" id="serialInput" placeholder="点下方键选择" maxlength="6" autocomplete="off" readonly="readonly"></div>
                     <div class="grid" id="digitGrid" style="margin-top:4px;"></div>
                 </div>
                 <div class="panel-actions">
@@ -508,7 +507,13 @@
         document.getElementById('digitGrid').innerHTML = DIGITS.map(d => `<button onclick="appendSerial('${d}')">${d}</button>`).join('');
     }
     function selectProvince(p) { plateProvince = p; updatePlatePreview(); document.getElementById('stepProvince').style.display='none'; document.getElementById('stepLetter').style.display='block'; }
-    function selectLetter(l) { plateLetter = l; updatePlatePreview(); document.getElementById('stepLetter').style.display='none'; document.getElementById('stepSerial').style.display='block'; document.getElementById('serialInput').focus(); }
+    function selectLetter(l) {
+        plateLetter = l;
+        updatePlatePreview();
+        document.getElementById('stepLetter').style.display = 'none';
+        document.getElementById('stepSerial').style.display = 'block';
+        // 不自动聚焦，键盘不会弹出
+    }
     function appendSerial(char) { if(plateSerial.length>=6) return; plateSerial += char; document.getElementById('serialInput').value = plateSerial; updatePlatePreview(); }
     document.getElementById('serialInput').addEventListener('input', function() {
         this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0,6);
